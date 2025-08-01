@@ -60,7 +60,6 @@ export async function toggleClickMode(enabled) {
           return;
         }
         
-        // Send message to content script
         const message = {
           action: 'toggleClickMode',
           enabled: enabled

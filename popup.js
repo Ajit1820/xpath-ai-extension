@@ -2,12 +2,10 @@ import { toggleClickMode } from './dom.js';
 
 let isClickModeActive = false;
 
-// Update click mode button text
 function updateClickModeButton() {
   const button = document.getElementById('toggleClickMode');
   button.textContent = isClickModeActive ? '🔍 Click Mode: ON' : '🔍 Click Mode: OFF';
   
-  // Update button styling based on state
   if (isClickModeActive) {
     button.style.backgroundColor = '#dcfce7';
     button.style.borderColor = '#22c55e';
@@ -19,7 +17,6 @@ function updateClickModeButton() {
   }
 }
 
-// Toggle click mode
 async function handleToggleClickMode() {
   const output = document.getElementById('output');
   output.innerHTML = "Toggling click mode...";
@@ -42,10 +39,8 @@ async function handleToggleClickMode() {
   }
 }
 
-// Event listeners
 document.getElementById("toggleClickMode").addEventListener("click", handleToggleClickMode);
 
-// Listen for click mode deactivation from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'clickModeDeactivated') {
     isClickModeActive = false;
