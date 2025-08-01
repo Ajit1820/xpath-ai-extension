@@ -1,70 +1,55 @@
-import { extractRelevantHTML } from "./dom.js";
-import { callGeminiAPI } from "./api.js";
+import { toggleClickMode } from './dom.js';
 
-document.getElementById("generateBtn").addEventListener("click", async () => {
-  const output = document.getElementById("output");
-  output.innerText = "Extracting elements...";
+let isClickModeActive = false;
 
-  try {
-    const filteredHTML = await extractRelevantHTML();
-    output.innerText = "Calling Gemini AI...";
-    const result = await callGeminiAPI(filteredHTML);
-    function renderOutput(text) {
-  const container = document.getElementById("output");
-  container.innerHTML = "";
-
-  const lines = text.split("\n");
-
-  let currentLabel = "";
-
-  lines.forEach(line => {
-    const trimmed = line.trim();
-
-    // Capture element label
-    const labelMatch = trimmed.match(/^(\*+|\d+\.)\s*(.+?)[:：]?\s*$/);
-    if (labelMatch) {
-      currentLabel = labelMatch[2];
-    }
-
-    // Render XPath line
-    if (trimmed.startsWith("//")) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "copy-line";
-
-      const btn = document.createElement("button");
-      btn.className = "copy-btn";
-      btn.textContent = "📋";
-      btn.onclick = () => {
-        navigator.clipboard.writeText(trimmed);
-        btn.textContent = "✅";
-        setTimeout(() => (btn.textContent = "📋"), 1000);
-      };
-
-      const lineText = document.createElement("code");
-      lineText.textContent = `${currentLabel} : ${trimmed}`;
-
-      wrapper.appendChild(btn);
-      wrapper.appendChild(lineText);
-      container.appendChild(wrapper);
-    }
-  });
+// Update click mode button text
+function updateClickModeButton() {
+  const button = document.getElementById('toggleClickMode');
+  button.textContent = isClickModeActive ? '🔍 Click Mode: ON' : '🔍 Click Mode: OFF';
+  
+  // Update button styling based on state
+  if (isClickModeActive) {
+    button.style.backgroundColor = '#dcfce7';
+    button.style.borderColor = '#22c55e';
+    button.style.color = '#166534';
+  } else {
+    button.style.backgroundColor = '#dbeafe';
+    button.style.borderColor = '#93c5fd';
+    button.style.color = '#1e40af';
+  }
 }
 
-
-    renderOutput(result);
+// Toggle click mode
+async function handleToggleClickMode() {
+  const output = document.getElementById('output');
+  output.innerHTML = "Toggling click mode...";
+  
+  try {
+    isClickModeActive = !isClickModeActive;
+    await toggleClickMode(isClickModeActive);
+    updateClickModeButton();
+    
+    if (isClickModeActive) {
+      output.innerHTML = "🔍 <b>Click Mode Active!</b><br>Click on any element to get its XPath.";
+    } else {
+      output.innerHTML = "Enable <b>Click Mode</b> to get XPath for specific elements.";
+    }
   } catch (err) {
-    output.innerText = `❌ Error: ${err.message}`;
+    console.error('Toggle error:', err);
+    output.innerHTML = `❌ Error: ${err.message}<br><br>Try refreshing the page and try again.`;
+    isClickModeActive = !isClickModeActive;
+    updateClickModeButton();
   }
-});
+}
 
-document.getElementById("copyAllBtn").addEventListener("click", () => {
-  const allLines = document.querySelectorAll("#output code");
-  const text = Array.from(allLines)
-    .map((code) => code.textContent)
-    .join("\n");
+// Event listeners
+document.getElementById("toggleClickMode").addEventListener("click", handleToggleClickMode);
 
-  navigator.clipboard.writeText(text);
-  const btn = document.getElementById("copyAllBtn");
-  btn.textContent = "✅ All Copied";
-  setTimeout(() => (btn.textContent = "Copy All"), 1000);
+// Listen for click mode deactivation from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'clickModeDeactivated') {
+    isClickModeActive = false;
+    updateClickModeButton();
+    document.getElementById('output').innerHTML = "Enable <b>Click Mode</b> to get XPath for specific elements.";
+  }
 });

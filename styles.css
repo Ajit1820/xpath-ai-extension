@@ -1,25 +1,17 @@
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #eaf3fb;
-  padding: 16px;
-  max-width: 500px;     /* Set a max-width but allow flexibility */
-  min-width: 300px;     /* Let popup be narrow too */
-  max-height: 90vh;     /* Limit to 90% of viewport height */
-  font-size: 14px;
-  color: #0f172a;
-  border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  overflow: auto;       /* Enable scroll if content exceeds */
+  width: 300px;
+  padding: 15px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  background: #f8fafc;
 }
 
-
 h2 {
+  margin: 0 0 15px 0;
+  color: #1e293b;
   font-size: 18px;
-  margin-bottom: 16px;
-  color: #003366; /* deep tech blue */
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
 button {
@@ -40,18 +32,33 @@ button:hover {
   box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
 }
 
-#output {
-  background-color: #f8fafc;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
+.mode-btn {
+  width: 100%;
+  padding: 10px;
+  background: #dbeafe;
+  border: 2px solid #93c5fd;
   border-radius: 6px;
-  max-height: 400px;
-  overflow-y: auto;
-  font-family: 'Courier New', Courier, monospace;
+  color: #1e40af;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.mode-btn:hover {
+  background: #bfdbfe;
+  border-color: #60a5fa;
+}
+
+#output {
+  margin-top: 15px;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
   font-size: 13px;
-  white-space: pre-wrap;
-  color: #1e293b;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+  line-height: 1.4;
+  color: #374151;
 }
 
 .copy-line {

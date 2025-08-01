@@ -8,13 +8,10 @@
 </head>
 <body>
   <h2><img src="icon.png" height="16" style="vertical-align:middle; margin-right:6px;"> XPath AI Tool</h2>
-<div style="margin-bottom: 10px;">
-  <button id="generateBtn">Generate XPath</button>
-  <button id="copyAllBtn">Copy All Button</button>
-</div>
-
-<div id="output">Click <b>Generate XPath</b> to analyze the current page.</div>
-
+  <div style="margin-bottom: 10px;">
+    <button id="toggleClickMode" class="mode-btn">🔍 Click Mode: OFF</button>
+  </div>
+  <div id="output">Enable <b>Click Mode</b> to get XPath for specific elements.</div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

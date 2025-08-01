@@ -2,20 +2,23 @@
   "manifest_version": 3,
   "name": "XPath AI Generator",
   "version": "1.0",
-  "description": "Generate XPath using GenAI",
+  "description": "Generate XPath using GenAI - Click on elements to get their XPath",
   "permissions": ["scripting", "activeTab", "storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
-  "default_popup": "popup.html",
-  "default_icon": {
-    "16": "icon.png"
-  }
-
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ]
 }

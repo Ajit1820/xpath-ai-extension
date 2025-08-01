@@ -1,118 +1,103 @@
 
-# 🔍 XPath Generator Chrome Extension (Powered by Gemini AI)
+# XPath AI Generator Extension
 
-This Chrome extension uses Gemini AI (Google's GenAI model) to generate XPath locators for input fields, buttons, and links on any webpage — instantly and accurately.
+A Chrome extension that generates XPath selectors by clicking on elements.
 
----
+## Features
 
-## 🚀 Features
+- **Click-to-XPath**: Click any element to get its XPath
+- **Smart XPath Generation**: Uses intelligent algorithms to generate reliable XPaths
+- **Multiple Element Detection**: Automatically handles duplicate elements with position indexing
+- **Visual Feedback**: Highlights clicked elements and shows results on-page
+- **Copy to Clipboard**: One-click copying of generated XPaths
 
-- ✅ One-click XPath generation using AI
-- ✅ Smart suggestions for inputs, buttons, links
-- ✅ Works on all websites and internal tools
-- ✅ Built-in error handling and status messages
-- ✅ Easily extensible for your automation needs
+## Setup
 
----
+### 1. Install the Extension
 
-## 🧠 Who Should Use This?
+1. Download or clone this repository
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable "Developer mode"
+4. Click "Load unpacked" and select the extension folder
 
-- QA Automation Engineers
-- Manual Testers moving to automation
-- Developers building test-friendly UIs
-- Anyone using Selenium, Playwright, Cypress, Puppeteer
+## Usage
 
----
+### Basic Usage
 
-## 📦 What's Included
+1. **Open any webpage**
+2. **Click the extension icon**
+3. **Click "🔍 Click Mode: OFF" to activate**
+4. **Click any element on the page**
+5. **Copy the generated XPath**
 
-- Chrome extension source code
-- Step-by-step setup guide
-- Integration with Gemini API
-- User-friendly popup interface
+### Output Examples
 
----
+```
+//button[text()='Submit']
+//input[@placeholder='Search']
+//a[contains(@href, '/login')]
+//span[text()=' Campaigns ']
+(//p[text()='Chat dengan Dokter'])[2]
+```
 
-## 🛠️ Prerequisites
+## Features in Detail
 
-Before you start, make sure you have:
+### Smart XPath Generation
 
-- ✅ Google Chrome installed
-- ✅ A valid Gemini API key (get it from: https://makersuite.google.com/app/apikey)
-- ✅ Basic knowledge of XPath (optional)
+The extension uses a priority-based system:
 
----
+1. **ID-based**: `//button[@id='submit-btn']`
+2. **Text-based**: `//button[text()='Submit']` (preserves exact whitespace)
+3. **Attribute-based**: `//input[@name='email' and @placeholder='Enter email']`
+4. **Position-based**: `//div[contains(@class, 'card')]/span[1]`
 
-## 📥 Installation Guide
+### Multiple Element Handling
 
-### 1. Clone or Download the Repository
+When multiple elements match, the extension automatically adds position indexing:
 
+```xpath
+(//button[text()='Submit'])[2]  // Second matching button
+(//p[text()='Chat dengan Dokter'])[2]  // Second matching paragraph
+```
 
-git clone https://github.com/your-username/xpath-ai-extension.git
+### Element-Specific Optimization
 
-Or download the ZIP and extract the folder.
+- **Images**: Uses `src` attribute: `//img[contains(@src, 'arrow-back.svg')]`
+- **Links**: Uses `href` attribute: `//a[@href='/kesehatan']`
+- **Inputs**: Prioritizes `name`, `type`, `placeholder` attributes
+- **Buttons**: Uses `type` or text content
 
-### 2. Load the Extension in Chrome
+## Troubleshooting
 
-1. Open Google Chrome
-2. Go to: `chrome://extensions`
-3. Enable **Developer Mode** (top right)
-4. Click **Load Unpacked**
-5. Select the extracted folder
+### Extension Not Working
 
----
+1. **Reload Extension**: Go to `chrome://extensions/` and click refresh
+2. **Check Console**: Open DevTools (F12) and check for errors
+3. **Refresh Page**: Try refreshing the webpage you're testing on
 
-## 🔐 Configure Your Gemini API Key
+### XPath Not Accurate
 
-1. Open `api.js` inside the extension folder
-2. Find the line:
-javascript
-const API_KEY = "YOUR_GEMINI_API_KEY" 
-3. Replace `"YOUR_GEMINI_API_KEY"` with your actual API key from Gemini
-4. Save the file
+1. **Check Element**: Ensure you're clicking the correct element
+2. **Check for Dynamic Content**: Some elements may change dynamically
+3. **Try Different Elements**: Some complex elements may need manual adjustment
 
-> 📌 Example: const API_KEY ="AIzaSyA..."
+### Click Mode Not Activating
 
----
+1. **Check Permissions**: Ensure the extension has access to the current page
+2. **Refresh Page**: Some pages may need to be refreshed after loading the extension
+3. **Check Console**: Look for any error messages in the browser console
 
-## 💡 How to Use the Extension
+## How It Works
 
-1. Open any website (e.g., https://example.com)
-2. Click the **XPath AI Generator** extension icon
-3. Click the **"Generate XPath"** button
-4. The extension will:
-   - Capture the page HTML
-   - Send it to Gemini
-   - Show XPath locators in the popup window
+1. **Click Detection**: The extension listens for clicks on the webpage
+2. **Element Analysis**: Analyzes the clicked element's attributes, text, and position
+3. **XPath Generation**: Uses intelligent algorithms to create the most reliable XPath
+4. **Result Display**: Shows the XPath in an on-page panel with copy functionality
 
----
+## Contributing
 
-## ✅ Sample Output
+Feel free to submit issues and enhancement requests!
 
+## License
 
-Generated XPath:
-- //input[@name='email']
-- //button[contains(text(),'Submit')]
-- //a[contains(text(),'Learn More')]
-
-
----
-
-## 🧩 Troubleshooting
-
-|-----------------------------|----------------------------------------------------|
-| Issue                       | Solution                                           |
-|-----------------------------|----------------------------------------------------|
-| API Error: Unauthorized     | Double-check if your Gemini API key is correct     |
-| "No response from API"      | Check network or simplify the HTML being processed |
-| Extension not visible       | Pin it using the Chrome puzzle icon                |
-|-----------------------------|----------------------------------------------------|
----
-
-## 📄 License
-
-MIT License — free to use, share, and modify
-
----
-
-> ✨ Automate smarter. Let Gemini AI do the XPath work for you!
+This project is open source and available under the MIT License.
