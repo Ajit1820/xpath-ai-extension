@@ -1,5 +1,5 @@
 export async function callGeminiAPI(filteredHTML, isSingleElement = false) {
-  const API_KEY = "AIzaSyDPiZGiLwjKkBvqmySkIi3vD2oja_0xdp0"; // Replace this with your actual key
+  const API_KEY = ""; // Replace this with your actual key
 
   const prompt = isSingleElement 
     ? `You're an expert in XPath generation for UI test automation.
