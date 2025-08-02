@@ -1,24 +1,77 @@
 
 # XPath AI Generator Extension
 
-A Chrome extension that generates XPath selectors by clicking on elements.
+A Chrome extension that generates XPath selectors by clicking on elements, powered by **AI**.
 
 ## Features
 
+- **🤖 AI-Powered**: Uses AI for intelligent XPath generation
+- **🔄 Easy AI Switching**: Change AI providers by just updating the URL in config
 - **Click-to-XPath**: Click any element to get its XPath
-- **Smart XPath Generation**: Uses intelligent algorithms to generate reliable XPaths
 - **Multiple Element Detection**: Automatically handles duplicate elements with position indexing
 - **Visual Feedback**: Highlights clicked elements and shows results on-page
 - **Copy to Clipboard**: One-click copying of generated XPaths
 
-## Setup
+## Quick Start
 
-### 1. Install the Extension
+### 1. Get AI API Key
+
+Get an API key from your preferred AI provider (currently configured for Gemini).
+
+### 2. Configure the Extension
+
+1. Open `config.js` in the extension folder
+2. Replace `GEMINI_API_KEY` with your actual API key:
+   ```javascript
+   AI_API_KEY: "your-actual-api-key-here",
+   ```
+
+### 3. Install the Extension
 
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the extension folder
+
+### 4. Use the Extension
+
+1. **Open any webpage**
+2. **Click the extension icon** - should show "✅ AI Enabled: AI API configured"
+3. **Click "🔍 Click Mode: OFF" to activate**
+4. **Click any element on the page**
+5. **Copy the AI-generated XPath**
+
+## Switching AI Providers
+
+The extension is designed to easily switch between different AI providers. Just update these values in `config.js`:
+
+### For Gemini (Current Setup)
+```javascript
+AI_API_KEY: "your-gemini-api-key",
+AI_MODEL: "gemini-2.0-flash",
+AI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/models"
+```
+
+### For OpenAI
+```javascript
+AI_API_KEY: "your-openai-api-key",
+AI_MODEL: "gpt-3.5-turbo",
+AI_BASE_URL: "https://api.openai.com/v1"
+```
+
+### For DeepSeek
+```javascript
+AI_API_KEY: "your-deepseek-api-key",
+AI_MODEL: "deepseek-chat",
+AI_BASE_URL: "https://api.deepseek.com/v1"
+```
+
+### For Claude
+```javascript
+AI_API_KEY: "your-claude-api-key",
+AI_MODEL: "claude-3-sonnet-20240229",
+AI_BASE_URL: "https://api.anthropic.com/v1"
+```
 
 ## Usage
 
@@ -26,78 +79,13 @@ A Chrome extension that generates XPath selectors by clicking on elements.
 
 1. **Open any webpage**
 2. **Click the extension icon**
-3. **Click "🔍 Click Mode: OFF" to activate**
-4. **Click any element on the page**
-5. **Copy the generated XPath**
+3. **Check AI status** - should show "✅ AI Enabled: AI API configured"
+4. **Click "🔍 Click Mode: OFF" to activate**
+5. **Click any element on the page**
+6. **Copy the AI-generated XPath**
 
-### Output Examples
+### AI vs Local Generation
 
-```
-//button[text()='Submit']
-//input[@placeholder='Search']
-//a[contains(@href, '/login')]
-//span[text()=' Campaigns ']
-(//p[text()='Chat dengan Dokter'])[2]
-```
+- **AI Generation**: Uses your configured AI for intelligent XPath generation
+- **Local Generation**: Fallback algorithm that works without API key
 
-## Features in Detail
-
-### Smart XPath Generation
-
-The extension uses a priority-based system:
-
-1. **ID-based**: `//button[@id='submit-btn']`
-2. **Text-based**: `//button[text()='Submit']` (preserves exact whitespace)
-3. **Attribute-based**: `//input[@name='email' and @placeholder='Enter email']`
-4. **Position-based**: `//div[contains(@class, 'card')]/span[1]`
-
-### Multiple Element Handling
-
-When multiple elements match, the extension automatically adds position indexing:
-
-```xpath
-(//button[text()='Submit'])[2]  // Second matching button
-(//p[text()='Chat dengan Dokter'])[2]  // Second matching paragraph
-```
-
-### Element-Specific Optimization
-
-- **Images**: Uses `src` attribute: `//img[contains(@src, 'arrow-back.svg')]`
-- **Links**: Uses `href` attribute: `//a[@href='/kesehatan']`
-- **Inputs**: Prioritizes `name`, `type`, `placeholder` attributes
-- **Buttons**: Uses `type` or text content
-
-## Troubleshooting
-
-### Extension Not Working
-
-1. **Reload Extension**: Go to `chrome://extensions/` and click refresh
-2. **Check Console**: Open DevTools (F12) and check for errors
-3. **Refresh Page**: Try refreshing the webpage you're testing on
-
-### XPath Not Accurate
-
-1. **Check Element**: Ensure you're clicking the correct element
-2. **Check for Dynamic Content**: Some elements may change dynamically
-3. **Try Different Elements**: Some complex elements may need manual adjustment
-
-### Click Mode Not Activating
-
-1. **Check Permissions**: Ensure the extension has access to the current page
-2. **Refresh Page**: Some pages may need to be refreshed after loading the extension
-3. **Check Console**: Look for any error messages in the browser console
-
-## How It Works
-
-1. **Click Detection**: The extension listens for clicks on the webpage
-2. **Element Analysis**: Analyzes the clicked element's attributes, text, and position
-3. **XPath Generation**: Uses intelligent algorithms to create the most reliable XPath
-4. **Result Display**: Shows the XPath in an on-page panel with copy functionality
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## License
-
-This project is open source and available under the MIT License.

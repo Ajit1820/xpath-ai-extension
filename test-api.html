@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI API</title>
+</head>
+<body>
+    <h1>Test AI API</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { callAIAPI } from './api.js';
+        
+        window.testAPI = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing AI API...';
+            
+            try {
+                const testHTML = '<button id="test-btn" class="btn-primary">Click me</button>';
+                console.log('Starting API test...');
+                const result = await callAIAPI(testHTML, true);
+                resultDiv.innerHTML = '<h3>Success!</h3><pre>' + result + '</pre>';
+            } catch (error) {
+                console.error('API test failed:', error);
+                resultDiv.innerHTML = '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            }
+        };
+    </script>
+</body>
+</html> 

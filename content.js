@@ -208,50 +208,144 @@ function updateXPathResultPanel(content) {
 
 async function generateXPathDirectly(element) {
   try {
-    const xpath = generateSpecificXPath(element);
-    const elementInfo = {
-      tagName: element.tagName.toLowerCase(),
-      id: element.id,
-      className: element.className,
-      textContent: element.textContent?.trim().substring(0, 50) || ''
-    };
+  
+    console.log('Content: Checking generation mode...');
+    const response = await chrome.runtime.sendMessage({ action: 'getGenerationMode' });
+    const useAI = response.useAI;
+    console.log('Content: Generation mode response:', response);
+    console.log('Content: useAI value:', useAI);
     
-    const result = `
-      <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
-        <strong>Element:</strong> ${elementInfo.tagName}
-        ${elementInfo.id ? `<br><strong>ID:</strong> ${elementInfo.id}` : ''}
-        ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
-      </div>
-      <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
-        <strong>XPath:</strong><br>
-        <code style="color: #1e40af; word-break: break-all;">${xpath}</code>
-        <button id="copy-xpath-btn" class="xpath-extension-element" style="
-          margin-left: 10px;
-          background: #2563eb;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-        ">📋 Copy</button>
-      </div>
-    `;
-    
-    updateXPathResultPanel(result);
-    
-    const copyBtn = document.getElementById('copy-xpath-btn');
-    if (copyBtn) {
-      copyBtn.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Copy button clicked');
-        copyXPathToClipboard(xpath);
-      });
+    if (useAI) {
+      console.log('Content: Using AI generation');
+      
+      updateXPathResultPanel('🤖 Generating XPath with AI...');
+      
+      console.log('Content: Sending AI request...');
+      
+      const elementContext = getElementContext(element);
+      
+      try {
+        const aiResponse = await chrome.runtime.sendMessage({
+          action: 'generateXPathWithAI',
+          elementHTML: element.outerHTML,
+          elementInfo: {
+            tagName: element.tagName.toLowerCase(),
+            id: element.id,
+            className: element.className,
+            textContent: element.textContent?.trim().substring(0, 100) || '',
+            attributes: getElementAttributes(element),
+            context: elementContext
+          }
+        });
+        
+        console.log('Content: AI response received:', aiResponse);
+        
+        if (aiResponse && aiResponse.xpath) {
+          console.log('Content: Processing successful AI response');
+          const elementInfo = {
+            tagName: element.tagName.toLowerCase(),
+            id: element.id,
+            className: element.className,
+            textContent: element.textContent?.trim().substring(0, 50) || ''
+          };
+          
+          const result = `
+            <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
+              <strong>Element:</strong> ${elementInfo.tagName}
+              ${elementInfo.id ? `<br><strong>ID:</strong> ${elementInfo.id}` : ''}
+              ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
+            </div>
+            <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+              <strong>AI Generated XPath:</strong><br>
+              <code style="color: #1e40af; word-break: break-all;">${aiResponse.xpath}</code>
+              <button id="copy-xpath-btn" class="xpath-extension-element" style="
+                margin-left: 10px;
+                background: #2563eb;
+                color: white;
+                border: none;
+                padding: 4px 8px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+              ">📋 Copy</button>
+            </div>
+          `;
+          
+          updateXPathResultPanel(result);
+          
+          const copyBtn = document.getElementById('copy-xpath-btn');
+          if (copyBtn) {
+            copyBtn.addEventListener('mousedown', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Copy button clicked');
+              copyXPathToClipboard(aiResponse.xpath);
+            });
+          }
+        } else if (aiResponse && aiResponse.error) {
+          console.error('Content: AI generation error received:', aiResponse.error);
+          updateXPathResultPanel(`❌ AI Error: ${aiResponse.error}`);
+        } else {
+          console.log('Content: AI generation failed - no valid response');
+          updateXPathResultPanel(`❌ AI generation failed. Please try again or switch to local generation.`);
+        }
+      } catch (aiError) {
+        console.error('Content: AI request failed with exception:', aiError);
+        updateXPathResultPanel(`❌ AI Error: ${aiError.message}`);
+      }
+    } else {
+      console.log('Content: Using local generation');
+      // Use local generation
+      updateXPathResultPanel('🔄 Generating XPath locally...');
+      generateLocalXPath(element);
     }
   } catch (error) {
     console.error('Error generating XPath:', error);
     updateXPathResultPanel(`❌ Error generating XPath: ${error.message}`);
+  }
+}
+
+function generateLocalXPath(element) {
+  const xpath = generateSpecificXPath(element);
+  const elementInfo = {
+    tagName: element.tagName.toLowerCase(),
+    id: element.id,
+    className: element.className,
+    textContent: element.textContent?.trim().substring(0, 50) || ''
+  };
+  
+  const result = `
+    <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
+      <strong>Element:</strong> ${elementInfo.tagName}
+      ${elementInfo.id ? `<br><strong>ID:</strong> ${elementInfo.id}` : ''}
+      ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
+    </div>
+    <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+      <strong>Local XPath:</strong><br>
+      <code style="color: #1e40af; word-break: break-all;">${xpath}</code>
+      <button id="copy-xpath-btn" class="xpath-extension-element" style="
+        margin-left: 10px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      ">📋 Copy</button>
+    </div>
+  `;
+  
+  updateXPathResultPanel(result);
+  
+  const copyBtn = document.getElementById('copy-xpath-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Copy button clicked');
+      copyXPathToClipboard(xpath);
+    });
   }
 }
 
@@ -487,4 +581,163 @@ function getElementAttributes(element) {
     attributes[attr.name] = attr.value;
   }
   return attributes;
+}
+
+function getElementContext(element) {
+  const context = {
+    position: getElementPosition(element),
+    parentInfo: getParentInfo(element),
+    siblings: getSiblingInfo(element),
+    uniqueAttributes: getUniqueAttributes(element)
+  };
+  
+  return context;
+}
+
+function getElementPosition(element) {
+  const tagName = element.tagName.toLowerCase();
+  const textContent = element.textContent?.trim();
+  const className = element.className;
+  
+  let position = 1;
+  let similarElements = [];
+  
+  if (textContent) {
+    similarElements = Array.from(document.querySelectorAll(`${tagName}`)).filter(el => 
+      el.textContent?.trim() === textContent
+    );
+    
+    console.log(`Found ${similarElements.length} elements with text: "${textContent}"`);
+    
+    if (similarElements.length > 1) {
+      const uniqueElements = [];
+      const seenElements = new Set();
+      
+      for (const el of similarElements) {
+        const elementId = `${el.tagName}-${el.textContent?.trim()}-${el.className}-${el.id}`;
+        
+        if (!seenElements.has(elementId)) {
+          seenElements.add(elementId);
+          uniqueElements.push(el);
+        }
+      }
+      
+      similarElements = uniqueElements;
+      console.log(`After deduplication: ${similarElements.length} unique elements`);
+    }
+  } else if (className) {
+    try {
+      const escapedClasses = className.split(' ').map(c => {
+        return c.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
+      }).join('.');
+      
+      similarElements = Array.from(document.querySelectorAll(`${tagName}.${escapedClasses}`));
+    } catch (error) {
+      console.log('Error with class selector, falling back to tag name only');
+      similarElements = Array.from(document.querySelectorAll(tagName));
+    }
+  } else {
+    similarElements = Array.from(document.querySelectorAll(tagName));
+  }
+  
+  for (let i = 0; i < similarElements.length; i++) {
+    if (similarElements[i] === element) {
+      position = i + 1;
+      break;
+    }
+  }
+  
+  const needsIndexing = similarElements.length > 1;
+  
+  console.log(`Element position: ${position}/${similarElements.length}, needsIndexing: ${needsIndexing}`);
+  
+  return {
+    position: position,
+    totalSimilar: similarElements.length,
+    needsIndexing: needsIndexing
+  };
+}
+
+function getParentInfo(element) {
+  const parent = element.parentElement;
+  if (!parent) return null;
+  
+  return {
+    tagName: parent.tagName.toLowerCase(),
+    id: parent.id,
+    className: parent.className,
+    hasUniqueId: !!parent.id,
+    hasUniqueClass: parent.className && parent.className.trim() !== ''
+  };
+}
+
+function getSiblingInfo(element) {
+  const parent = element.parentElement;
+  if (!parent) return null;
+  
+  const siblings = Array.from(parent.children).filter(child => child.tagName === element.tagName);
+  
+  return {
+    totalSiblings: siblings.length,
+    position: siblings.indexOf(element) + 1,
+    needsSiblingIndex: siblings.length > 1
+  };
+}
+
+function getUniqueAttributes(element) {
+  const uniqueAttrs = [];
+  
+  if (element.id) uniqueAttrs.push('id');
+  if (element.getAttribute('data-testid')) uniqueAttrs.push('data-testid');
+  if (element.getAttribute('data-cy')) uniqueAttrs.push('data-cy');
+  if (element.getAttribute('aria-label')) uniqueAttrs.push('aria-label');
+  if (element.getAttribute('name')) uniqueAttrs.push('name');
+  if (element.getAttribute('title')) uniqueAttrs.push('title');
+  if (element.getAttribute('alt')) uniqueAttrs.push('alt');
+  if (element.getAttribute('href')) uniqueAttrs.push('href');
+  if (element.getAttribute('src')) uniqueAttrs.push('src');
+  if (element.getAttribute('placeholder')) uniqueAttrs.push('placeholder');
+  
+  if (element.className) {
+    const classes = element.className.split(' ').filter(c => c.trim());
+    if (classes.length > 0) {
+      const shortClasses = classes.filter(c => 
+        c.length <= 15 && 
+        !c.includes('ng-') && 
+        !c.includes('md:') && 
+        !c.includes('text-[') &&
+        !c.includes('basis-[') &&
+        !c.includes('flex-')
+      );
+      
+      if (shortClasses.length > 0) {
+        
+        const sortedClasses = shortClasses.sort((a, b) => {
+          // Prefer shorter classes
+          if (a.length !== b.length) return a.length - b.length;
+          
+          const aCount = document.querySelectorAll(`.${a}`).length;
+          const bCount = document.querySelectorAll(`.${b}`).length;
+          return aCount - bCount;
+        });
+        
+        const uniqueShortClass = sortedClasses.find(c => {
+          try {
+            const escapedClass = c.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, '\\$&');
+            const similarElements = document.querySelectorAll(`.${escapedClass}`);
+            return similarElements.length === 1;
+          } catch (error) {
+            console.log('Error checking class uniqueness:', error);
+            return false;
+          }
+        });
+        
+        if (uniqueShortClass) {
+          uniqueAttrs.push('short-class');
+        }
+      }
+    }
+  }
+  
+  return uniqueAttrs;
 }

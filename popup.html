@@ -8,9 +8,23 @@
 </head>
 <body>
   <h2><img src="icon.png" height="16" style="vertical-align:middle; margin-right:6px;"> XPath AI Tool</h2>
+  
+  <div id="api-status" style="margin-bottom: 10px; padding: 8px; border-radius: 4px; font-size: 12px;">
+    <div id="api-status-text">Checking API configuration...</div>
+  </div>
+  
   <div style="margin-bottom: 10px;">
     <button id="toggleClickMode" class="mode-btn">🔍 Click Mode: OFF</button>
   </div>
+  
+  <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+    <span style="font-size: 13px; color: #374151;">Use AI for XPath generation:</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="aiToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  
   <div id="output">Enable <b>Click Mode</b> to get XPath for specific elements.</div>
   <script type="module" src="popup.js"></script>
 </body>
