@@ -3,29 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>XPath AI Tool</title>
+  <title>XPath & ID Generator</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+      margin-right: 15px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #22c55e;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 10px;
+      gap: 10px;
+    }
+    
+    .toggle-label {
+      font-size: 14px;
+      font-weight: bold;
+      min-width: 80px;
+    }
+    
+    .click-mode-container {
+      margin-left: auto;
+    }
+  </style>
 </head>
 <body>
-  <h2><img src="icon.png" height="16" style="vertical-align:middle; margin-right:6px;"> XPath AI Tool</h2>
+  <h2><img src="icon.png" height="16" style="vertical-align:middle; margin-right:6px;"> XPath & ID Generator</h2>
   
   <div id="api-status" style="margin-bottom: 10px; padding: 8px; border-radius: 4px; font-size: 12px;">
     <div id="api-status-text">Checking API configuration...</div>
   </div>
   
-  <div style="margin-bottom: 10px;">
-    <button id="toggleClickMode" class="mode-btn">🔍 Click Mode: OFF</button>
-  </div>
-  
-  <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-    <span style="font-size: 13px; color: #374151;">Use AI for XPath generation:</span>
+  <div class="toggle-container">
+    <span class="toggle-label">🤖 AI Mode:</span>
     <label class="toggle-switch">
-      <input type="checkbox" id="aiToggle">
+      <input type="checkbox" id="toggleAIMode">
       <span class="slider"></span>
     </label>
+    <div class="click-mode-container">
+      <button id="toggleClickMode" class="mode-btn">🔍 Click Mode: OFF</button>
+    </div>
   </div>
   
-  <div id="output">Enable <b>Click Mode</b> to get XPath for specific elements.</div>
+  <div id="output">Enable <b>Click Mode</b> to get ID (if available) else XPath for specific elements.</div>
+  
+  <div style="margin-top: 15px; padding: 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px; color: #64748b;">
+    <strong>💡 Note:</strong> Always prefer ID over XPath.
+  </div>
+  
   <script type="module" src="popup.js"></script>
 </body>
 </html>

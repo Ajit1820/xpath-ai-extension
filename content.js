@@ -41,7 +41,31 @@ function enableClickDetection() {
     event.preventDefault();
     event.stopPropagation();
     
-    const element = event.target;
+    let element = event.target;
+    
+    // Try to find a better element to work with
+    // First, try to find an element with an ID
+    let current = element;
+    while (current && current !== document.body) {
+      if (current.id && current.id.trim()) {
+        element = current;
+        break;
+      }
+      current = current.parentElement;
+    }
+    
+    // If no element with ID found, try to find an element with meaningful attributes
+    if (!element.id || !element.id.trim()) {
+      current = element;
+      while (current && current !== document.body) {
+        if (current.tagName && 
+            (current.className || current.getAttribute('data-testid') || current.getAttribute('aria-label'))) {
+          element = current;
+          break;
+        }
+        current = current.parentElement;
+      }
+    }
   
     if (isElementInXPathPanel(element)) {
       console.log('Clicked element is part of XPath panel, ignoring');
@@ -50,7 +74,7 @@ function enableClickDetection() {
     
     lastClickedElement = element;
     
-    console.log('Element clicked:', element.tagName, element.className);
+    console.log('Element clicked:', element.tagName, element.className, 'ID:', element.id);
     
     highlightElement(element);
     
@@ -208,100 +232,131 @@ function updateXPathResultPanel(content) {
 
 async function generateXPathDirectly(element) {
   try {
-  
-    console.log('Content: Checking generation mode...');
-    const response = await chrome.runtime.sendMessage({ action: 'getGenerationMode' });
-    const useAI = response.useAI;
-    console.log('Content: Generation mode response:', response);
-    console.log('Content: useAI value:', useAI);
+    console.log('Content: Checking if element has ID...');
+    console.log('Content: Element ID:', element.id);
+    
+    // Get AI mode state from background script
+    let useAI = false;
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'getGenerationMode' });
+      console.log('Content: Background response:', response);
+      
+      if (response && typeof response.useAI === 'boolean') {
+        useAI = response.useAI;
+        console.log('Content: Got AI mode from background:', useAI);
+      } else {
+        useAI = false;
+        console.log('Content: No valid response from background, defaulting AI mode to OFF');
+      }
+    } catch (error) {
+      console.log('Content: Error getting AI mode, defaulting to local generation');
+      useAI = false;
+    }
+    
+    console.log('Content: Final AI mode decision:', useAI);
     
     if (useAI) {
-      console.log('Content: Using AI generation');
-      
-      updateXPathResultPanel('🤖 Generating XPath with AI...');
-      
-      console.log('Content: Sending AI request...');
-      
-      const elementContext = getElementContext(element);
-      
-      try {
-        const aiResponse = await chrome.runtime.sendMessage({
-          action: 'generateXPathWithAI',
-          elementHTML: element.outerHTML,
-          elementInfo: {
-            tagName: element.tagName.toLowerCase(),
-            id: element.id,
-            className: element.className,
-            textContent: element.textContent?.trim().substring(0, 100) || '',
-            attributes: getElementAttributes(element),
-            context: elementContext
-          }
-        });
-        
-        console.log('Content: AI response received:', aiResponse);
-        
-        if (aiResponse && aiResponse.xpath) {
-          console.log('Content: Processing successful AI response');
-          const elementInfo = {
-            tagName: element.tagName.toLowerCase(),
-            id: element.id,
-            className: element.className,
-            textContent: element.textContent?.trim().substring(0, 50) || ''
-          };
-          
-          const result = `
-            <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
-              <strong>Element:</strong> ${elementInfo.tagName}
-              ${elementInfo.id ? `<br><strong>ID:</strong> ${elementInfo.id}` : ''}
-              ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
-            </div>
-            <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
-              <strong>AI Generated XPath:</strong><br>
-              <code style="color: #1e40af; word-break: break-all;">${aiResponse.xpath}</code>
-              <button id="copy-xpath-btn" class="xpath-extension-element" style="
-                margin-left: 10px;
-                background: #2563eb;
-                color: white;
-                border: none;
-                padding: 4px 8px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 12px;
-              ">📋 Copy</button>
-            </div>
-          `;
-          
-          updateXPathResultPanel(result);
-          
-          const copyBtn = document.getElementById('copy-xpath-btn');
-          if (copyBtn) {
-            copyBtn.addEventListener('mousedown', function(e) {
-              e.preventDefault();
-              e.stopPropagation();
-              console.log('Copy button clicked');
-              copyXPathToClipboard(aiResponse.xpath);
-            });
-          }
-        } else if (aiResponse && aiResponse.error) {
-          console.error('Content: AI generation error received:', aiResponse.error);
-          updateXPathResultPanel(`❌ AI Error: ${aiResponse.error}`);
-        } else {
-          console.log('Content: AI generation failed - no valid response');
-          updateXPathResultPanel(`❌ AI generation failed. Please try again or switch to local generation.`);
-        }
-      } catch (aiError) {
-        console.error('Content: AI request failed with exception:', aiError);
-        updateXPathResultPanel(`❌ AI Error: ${aiError.message}`);
-      }
+      // AI Mode ON: Send request to LLM with instructions to return ID if exists, else XPath
+      console.log('Content: AI Mode ON - sending request to LLM');
+      await generateWithAI(element);
     } else {
-      console.log('Content: Using local generation');
-      // Use local generation
-      updateXPathResultPanel('🔄 Generating XPath locally...');
-      generateLocalXPath(element);
+      // AI Mode OFF: Handle ID vs XPath logic locally
+      console.log('Content: AI Mode OFF - handling locally');
+      if (hasValidID(element)) {
+        console.log('Content: Element has valid ID, generating ID result');
+        generateIDResult(element);
+      } else {
+        console.log('Content: Element has no valid ID, generating XPath locally');
+        updateXPathResultPanel('🔄 Generating XPath locally...');
+        generateLocalXPath(element);
+      }
     }
   } catch (error) {
-    console.error('Error generating XPath:', error);
-    updateXPathResultPanel(`❌ Error generating XPath: ${error.message}`);
+    console.error('Error generating result:', error);
+    updateXPathResultPanel(`❌ Error generating result: ${error.message}`);
+  }
+}
+
+function hasValidID(element) {
+  // Check if element has an ID
+  if (!element.id || !element.id.trim()) {
+    return false;
+  }
+  
+  const id = element.id.trim();
+  
+  // Check if ID follows common dynamic patterns
+  const dynamicPatterns = [
+    /^.*-\d+$/, // Ends with dash and numbers (e.g., "mat-mdc-form-field-label-12")
+    /^.*_\d+$/, // Ends with underscore and numbers
+    /^.*\d+$/,  // Ends with numbers (e.g., "element123")
+    /^\d+.*$/,  // Starts with numbers
+    /^.*\d{2,}.*$/, // Contains 2 or more consecutive numbers
+    /^.*-\d+-.*$/, // Contains dash-number-dash pattern
+    /^.*_\d+_.*$/, // Contains underscore-number-underscore pattern
+  ];
+  
+  for (const pattern of dynamicPatterns) {
+    if (pattern.test(id)) {
+      console.log('Content: ID matches dynamic pattern:', id, 'Pattern:', pattern);
+      return false;
+    }
+  }
+  
+  // Additional check for common dynamic ID patterns
+  if (id.includes('-') && /\d/.test(id)) {
+    // Check if it's a common dynamic pattern like "mat-mdc-form-field-label-12"
+    const parts = id.split('-');
+    const lastPart = parts[parts.length - 1];
+    if (/^\d+$/.test(lastPart)) {
+      console.log('Content: ID ends with numeric part, considered dynamic:', id);
+      return false;
+    }
+  }
+  
+  console.log('Content: ID is valid (not dynamic):', id);
+  return true;
+}
+
+function generateIDResult(element) {
+  const elementInfo = {
+    tagName: element.tagName.toLowerCase(),
+    id: element.id,
+    className: element.className,
+    textContent: element.textContent?.trim().substring(0, 50) || ''
+  };
+  
+  const result = `
+    <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
+      <strong>Element:</strong> ${elementInfo.tagName}
+      ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
+    </div>
+    <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+      <strong>Element ID:</strong><br>
+      <code style="color: #1e40af; word-break: break-all;">${element.id}</code>
+      <button id="copy-id-btn" class="xpath-extension-element" style="
+        margin-left: 10px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      ">📋 Copy</button>
+    </div>
+  `;
+  
+  updateXPathResultPanel(result);
+  
+  const copyBtn = document.getElementById('copy-id-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Copy button clicked');
+      copyXPathToClipboard(element.id);
+    });
   }
 }
 
@@ -349,6 +404,8 @@ function generateLocalXPath(element) {
   }
 }
 
+
+
 function copyXPathToClipboard(xpathText) {
   console.log('Copying XPath:', xpathText);
   
@@ -386,7 +443,10 @@ function fallbackCopy(text) {
 }
 
 function showCopySuccess() {
-  const copyBtn = document.getElementById('copy-xpath-btn');
+  let copyBtn = document.getElementById('copy-xpath-btn');
+  if (!copyBtn) {
+    copyBtn = document.getElementById('copy-id-btn');
+  }
   if (copyBtn) {
     const originalText = copyBtn.textContent;
     copyBtn.textContent = '✅ Copied!';
@@ -741,3 +801,139 @@ function getUniqueAttributes(element) {
   
   return uniqueAttrs;
 }
+
+async function generateWithAI(element) {
+  console.log('Content: Generating with AI - checking for ID or XPath');
+  
+  updateXPathResultPanel('🤖 Analyzing element with AI...');
+  
+  const elementContext = getElementContext(element);
+  const elementInfo = {
+    tagName: element.tagName.toLowerCase(),
+    id: element.id,
+    className: element.className,
+    textContent: element.textContent?.trim().substring(0, 100) || '',
+    attributes: getElementAttributes(element),
+    context: elementContext
+  };
+  
+  try {
+    const aiResponse = await chrome.runtime.sendMessage({
+      action: 'generateXPathWithAI',
+      elementHTML: element.outerHTML,
+      elementInfo: elementInfo,
+      requestType: 'id_or_xpath' // New parameter to indicate this is a combined request
+    });
+    
+    console.log('Content: AI response received:', aiResponse);
+    
+    if (aiResponse && (aiResponse.id || aiResponse.xpath)) {
+      console.log('Content: Processing successful AI response');
+      
+      if (aiResponse.id) {
+        // AI returned an ID
+        console.log('Content: AI returned ID:', aiResponse.id);
+        generateIDResultFromAI(element, aiResponse.id);
+      } else if (aiResponse.xpath) {
+        // AI returned XPath
+        console.log('Content: AI returned XPath:', aiResponse.xpath);
+        generateXPathResultFromAI(element, aiResponse.xpath);
+      }
+    } else if (aiResponse && aiResponse.error) {
+      console.error('Content: AI generation error received:', aiResponse.error);
+      updateXPathResultPanel(`❌ AI Error: ${aiResponse.error}`);
+    } else {
+      console.log('Content: AI generation failed - no valid response');
+      updateXPathResultPanel(`❌ AI generation failed. Please try again or switch to local generation.`);
+    }
+  } catch (aiError) {
+    console.error('Content: AI request failed with exception:', aiError);
+    updateXPathResultPanel(`❌ AI Error: ${aiError.message}`);
+  }
+}
+
+function generateIDResultFromAI(element, id) {
+  const elementInfo = {
+    tagName: element.tagName.toLowerCase(),
+    id: id,
+    className: element.className,
+    textContent: element.textContent?.trim().substring(0, 50) || ''
+  };
+  
+  const result = `
+    <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
+      <strong>Element:</strong> ${elementInfo.tagName}
+      ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
+    </div>
+    <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+      <strong>AI Generated ID:</strong><br>
+      <code style="color: #1e40af; word-break: break-all;">${id}</code>
+      <button id="copy-id-btn" class="xpath-extension-element" style="
+        margin-left: 10px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      ">📋 Copy</button>
+    </div>
+  `;
+  
+  updateXPathResultPanel(result);
+  
+  const copyBtn = document.getElementById('copy-id-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Copy button clicked');
+      copyXPathToClipboard(id);
+    });
+  }
+}
+
+function generateXPathResultFromAI(element, xpath) {
+  const elementInfo = {
+    tagName: element.tagName.toLowerCase(),
+    id: element.id,
+    className: element.className,
+    textContent: element.textContent?.trim().substring(0, 50) || ''
+  };
+  
+  const result = `
+    <div style="margin-bottom: 10px; background: #f0f9ff; padding: 8px; border-radius: 4px;">
+      <strong>Element:</strong> ${elementInfo.tagName}
+      ${elementInfo.textContent ? `<br><strong>Text:</strong> "${elementInfo.textContent}"` : ''}
+    </div>
+    <div style="background: #f8fafc; padding: 10px; border-radius: 4px; border: 1px solid #e2e8f0;">
+      <strong>AI Generated XPath:</strong><br>
+      <code style="color: #1e40af; word-break: break-all;">${xpath}</code>
+      <button id="copy-xpath-btn" class="xpath-extension-element" style="
+        margin-left: 10px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      ">📋 Copy</button>
+    </div>
+  `;
+  
+  updateXPathResultPanel(result);
+  
+  const copyBtn = document.getElementById('copy-xpath-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Copy button clicked');
+      copyXPathToClipboard(xpath);
+    });
+  }
+}
+
+

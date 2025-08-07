@@ -1,22 +1,23 @@
 
-# XPath AI Generator Extension
+# XPath & ID Generator Extension
 
-A Chrome extension that generates XPath selectors by clicking on elements, powered by **AI**.
+A Chrome extension that automatically generates XPath selectors or returns existing element IDs by clicking on elements, powered by **AI** or local generation.
 
 ## Features
 
-- **🤖 AI-Powered**: Uses AI for intelligent XPath generation
-- **🔄 Easy AI Switching**: Change AI providers by just updating the URL in config
-- **Click-to-XPath**: Click any element to get its XPath
+- **🆔 Automatic ID Detection**: If an element has an ID, it returns the existing ID
+- **🤖 AI-Powered XPath**: Uses AI for intelligent XPath generation when no ID exists
+- **🔄 Local Fallback**: Local XPath generation when AI is not available
+- **Click-to-Generate**: Click any element to get its ID or XPath
 - **Multiple Element Detection**: Automatically handles duplicate elements with position indexing
 - **Visual Feedback**: Highlights clicked elements and shows results on-page
-- **Copy to Clipboard**: One-click copying of generated XPaths
+- **Copy to Clipboard**: One-click copying of generated XPaths or IDs
 
 ## Quick Start
 
-### 1. Get AI API Key
+### 1. Get AI API Key (Optional)
 
-Get an API key from your preferred AI provider (currently configured for Gemini).
+Get an API key from your preferred AI provider (currently configured for Gemini) for XPath generation.
 
 ### 2. Configure the Extension
 
@@ -36,10 +37,30 @@ Get an API key from your preferred AI provider (currently configured for Gemini)
 ### 4. Use the Extension
 
 1. **Open any webpage**
-2. **Click the extension icon** - should show "✅ AI Enabled: AI API configured"
+2. **Click the extension icon**
 3. **Click "🔍 Click Mode: OFF" to activate**
 4. **Click any element on the page**
-5. **Copy the AI-generated XPath**
+5. **Get the result**:
+   - **If element has ID**: Returns the existing ID
+   - **If no ID**: Generates XPath (AI or local)
+
+## How It Works
+
+### Automatic Selection Logic
+
+1. **ID Priority**: If the clicked element has an ID, it returns that ID
+2. **XPath Fallback**: If no ID exists, generates an XPath expression
+3. **AI vs Local**: Uses AI for XPath generation if configured, otherwise uses local generation
+
+### Examples
+
+#### Elements with IDs
+- Click on `<div id="health-utilitiesChat dengan Dokter">` → Returns: `health-utilitiesChat dengan Dokter`
+- Click on `<button id="login-btn">` → Returns: `login-btn`
+
+#### Elements without IDs
+- Click on `<div>Some text</div>` → Returns: `//div[text()='Some text']`
+- Click on `<input placeholder="Search">` → Returns: `//input[@placeholder='Search']`
 
 ## Switching AI Providers
 
@@ -79,13 +100,31 @@ AI_BASE_URL: "https://api.anthropic.com/v1"
 
 1. **Open any webpage**
 2. **Click the extension icon**
-3. **Check AI status** - should show "✅ AI Enabled: AI API configured"
-4. **Click "🔍 Click Mode: OFF" to activate**
-5. **Click any element on the page**
-6. **Copy the AI-generated XPath**
+3. **Click "🔍 Click Mode: OFF" to activate**
+4. **Click any element on the page**
+5. **Copy the result** (ID or XPath)
+
+### What You'll Get
+
+- **Elements with IDs**: Returns the existing ID (e.g., `health-utilitiesChat dengan Dokter`)
+- **Elements without IDs**: Returns XPath expression (e.g., `//button[text()='Login']`)
 
 ### AI vs Local Generation
 
-- **AI Generation**: Uses your configured AI for intelligent XPath generation
-- **Local Generation**: Fallback algorithm that works without API key
+- **AI Generation**: Intelligent XPath generation with context awareness (when API key is configured)
+- **Local Generation**: Reliable fallback using element attributes and position (when no API key)
+
+### Examples
+
+#### ID Examples
+- `health-utilitiesChat dengan Dokter`
+- `login-btn`
+- `search-input`
+- `nav-menu`
+
+#### XPath Examples
+- `//button[text()='Login']`
+- `//input[@placeholder='Search']`
+- `(//p[text()='Welcome'])[2]`
+- `//div[contains(@class, 'card')]`
 

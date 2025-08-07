@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "XPath AI Generator",
+  "name": "XPath & ID Generator",
   "version": "1.0",
-  "description": "Generate XPath using GenAI - Click on elements to get their XPath",
+  "description": "Generate XPath expressions and element IDs using AI or local generation - Click on elements to get their XPath or ID",
   "permissions": ["scripting", "activeTab", "storage"],
   "host_permissions": ["<all_urls>"],
   "action": {

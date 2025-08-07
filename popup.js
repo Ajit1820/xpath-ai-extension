@@ -3,7 +3,7 @@ import { callAIAPI } from './api.js';
 import { isApiConfigured } from './config.js';
 
 let isClickModeActive = false;
-let useAI = true; 
+let isAIModeActive = false;
 
 function updateApiStatus() {
   const apiStatusDiv = document.getElementById('api-status');
@@ -12,12 +12,24 @@ function updateApiStatus() {
   if (isApiConfigured()) {
     apiStatusDiv.style.backgroundColor = '#dcfce7';
     apiStatusDiv.style.border = '1px solid #22c55e';
-    apiStatusText.innerHTML = '✅ <strong>AI Enabled:</strong> AI API configured';
+    apiStatusText.innerHTML = '✅ <strong>AI Available:</strong> AI API configured for ID and XPath generation';
   } else {
     apiStatusDiv.style.backgroundColor = '#fef3c7';
     apiStatusDiv.style.border = '1px solid #f59e0b';
-    apiStatusText.innerHTML = '⚠️ <strong>AI Disabled:</strong> Add AI API key in config.js<br><small>Get your API key from your AI provider</small>';
+    apiStatusText.innerHTML = '⚠️ <strong>AI Unavailable:</strong> Add AI API key in config.js<br><small>Will use local ID and XPath generation only</small>';
   }
+}
+
+function updateAIModeButton() {
+  const toggleSwitch = document.getElementById('toggleAIMode');
+  if (!isApiConfigured()) {
+    toggleSwitch.disabled = true;
+    toggleSwitch.checked = false;
+    return;
+  }
+  
+  toggleSwitch.disabled = false;
+  toggleSwitch.checked = isAIModeActive;
 }
 
 function updateClickModeButton() {
@@ -35,37 +47,37 @@ function updateClickModeButton() {
   }
 }
 
-function updateToggleStatus() {
-  const aiToggle = document.getElementById('aiToggle');
-  aiToggle.checked = useAI;
-  
-  const apiStatusText = document.getElementById('api-status-text');
-  if (useAI) {
-    if (isApiConfigured()) {
-      apiStatusText.innerHTML = '✅ <strong>AI Enabled:</strong> AI API configured';
-    } else {
-      apiStatusText.innerHTML = '⚠️ <strong>AI Selected:</strong> But API key not configured';
-    }
-  } else {
-    apiStatusText.innerHTML = '🔄 <strong>Local Mode:</strong> Using local XPath generation';
+async function handleToggleAIMode() {
+  if (!isApiConfigured()) {
+    return;
   }
+  
+  isAIModeActive = !isAIModeActive;
+  updateAIModeButton();
+  
+  // Send AI mode state to background script
+  try {
+    await chrome.runtime.sendMessage({ 
+      action: 'setAIMode', 
+      enabled: isAIModeActive 
+    });
+    console.log('Popup: AI mode state sent to background:', isAIModeActive);
+  } catch (error) {
+    console.error('Popup: Error sending AI mode to background:', error);
+  }
+  
+  // No dynamic message - keep static message
 }
 
 async function handleToggleClickMode() {
   const output = document.getElementById('output');
-  output.innerHTML = "Toggling click mode...";
   
   try {
     isClickModeActive = !isClickModeActive;
     await toggleClickMode(isClickModeActive);
     updateClickModeButton();
     
-    if (isClickModeActive) {
-      const modeText = useAI ? "AI-powered" : "local";
-      output.innerHTML = `🔍 <b>Click Mode Active!</b><br>Click on any element to get its XPath using ${modeText} generation.`;
-    } else {
-      output.innerHTML = "Enable <b>Click Mode</b> to get XPath for specific elements.";
-    }
+    // No dynamic message - keep static message
   } catch (err) {
     console.error('Toggle error:', err);
     output.innerHTML = `❌ Error: ${err.message}<br><br>Try refreshing the page and try again.`;
@@ -74,32 +86,23 @@ async function handleToggleClickMode() {
   }
 }
 
-function handleAIToggle() {
-  useAI = !useAI;
-  updateToggleStatus();
-  
-  chrome.storage.local.set({ useAI: useAI });
-  
-  if (isClickModeActive) {
-    const output = document.getElementById('output');
-    const modeText = useAI ? "AI-powered" : "local";
-    output.innerHTML = `🔍 <b>Click Mode Active!</b><br>Click on any element to get its XPath using ${modeText} generation.`;
-  }
-}
-
+document.getElementById("toggleAIMode").addEventListener("change", handleToggleAIMode);
 document.getElementById("toggleClickMode").addEventListener("click", handleToggleClickMode);
-document.getElementById("aiToggle").addEventListener("change", handleAIToggle);
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'clickModeDeactivated') {
     isClickModeActive = false;
     updateClickModeButton();
-    document.getElementById('output').innerHTML = "Enable <b>Click Mode</b> to get XPath for specific elements.";
+    // No dynamic message - keep static message
   } else if (request.action === 'generateXPathWithAI') {
     handleAIXPathGeneration(request, sendResponse);
     return true; 
   } else if (request.action === 'getGenerationMode') {
+    // Return the current AI mode state
+    const useAI = isAIModeActive && isApiConfigured();
+    console.log('Popup: getGenerationMode requested, returning useAI:', useAI);
     sendResponse({ useAI: useAI });
+    return true;
   }
 });
 
@@ -107,6 +110,7 @@ async function handleAIXPathGeneration(request, sendResponse) {
   try {
     console.log('Popup: Generating XPath with AI for element:', request.elementInfo);
     console.log('Popup: AI configured:', isApiConfigured());
+    console.log('Popup: Request type:', request.requestType);
     
     if (!isApiConfigured()) {
       console.log('Popup: AI not configured, sending error');
@@ -115,25 +119,37 @@ async function handleAIXPathGeneration(request, sendResponse) {
     }
     
     console.log('Popup: Calling AI API...');
-    const xpathResult = await callAIAPI(request.elementHTML, true);
-    console.log('Popup: AI API response:', xpathResult);
+    const result = await callAIAPI(request.elementHTML, true, request.elementInfo, request.requestType);
+    console.log('Popup: AI API response:', result);
     
-    const lines = xpathResult.split('\n');
-    let xpath = '';
-    
-    for (const line of lines) {
-      if (line.trim().startsWith('//')) {
-        xpath = line.trim();
-        break;
+    if (request.requestType === 'id_or_xpath') {
+      // Handle ID or XPath response
+      if (result && (result.id || result.xpath)) {
+        console.log('Popup: Extracted result:', result);
+        sendResponse(result);
+      } else {
+        console.log('Popup: No valid result from AI');
+        sendResponse({ error: "AI returned no valid ID or XPath" });
       }
+    } else {
+      // Handle original XPath-only response
+      const lines = result.split('\n');
+      let xpath = '';
+      
+      for (const line of lines) {
+        if (line.trim().startsWith('//')) {
+          xpath = line.trim();
+          break;
+        }
+      }
+      
+      if (!xpath) {
+        xpath = result.trim();
+      }
+      
+      console.log('Popup: Extracted XPath:', xpath);
+      sendResponse({ xpath: xpath });
     }
-    
-    if (!xpath) {
-      xpath = xpathResult.trim();
-    }
-    
-    console.log('Popup: Extracted XPath:', xpath);
-    sendResponse({ xpath: xpath });
   } catch (error) {
     console.error('Popup: Error generating XPath with AI:', error);
     sendResponse({ error: error.message });
@@ -141,9 +157,20 @@ async function handleAIXPathGeneration(request, sendResponse) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const result = await chrome.storage.local.get(['useAI']);
-  useAI = result.useAI !== undefined ? result.useAI : true;
-  
   updateApiStatus();
-  updateToggleStatus();
+  updateAIModeButton();
+  updateClickModeButton();
+  
+  // Initialize AI mode state in background script
+  if (isApiConfigured()) {
+    try {
+      await chrome.runtime.sendMessage({ 
+        action: 'setAIMode', 
+        enabled: isAIModeActive 
+      });
+      console.log('Popup: Initial AI mode state sent to background:', isAIModeActive);
+    } catch (error) {
+      console.error('Popup: Error sending initial AI mode to background:', error);
+    }
+  }
 });
