@@ -44,18 +44,18 @@ function enableClickDetection() {
     let element = event.target;
     
     // Try to find a better element to work with
-    // First, try to find an element with an ID
+    // First, try to find an element with a valid ID
     let current = element;
     while (current && current !== document.body) {
-      if (current.id && current.id.trim()) {
+      if (current.id && current.id.trim() && hasValidID(current)) {
         element = current;
         break;
       }
       current = current.parentElement;
     }
     
-    // If no element with ID found, try to find an element with meaningful attributes
-    if (!element.id || !element.id.trim()) {
+    // If no element with valid ID found, try to find an element with meaningful attributes
+    if (!hasValidID(element)) {
       current = element;
       while (current && current !== document.body) {
         if (current.tagName && 
@@ -289,7 +289,6 @@ function hasValidID(element) {
   const dynamicPatterns = [
     /^.*-\d+$/, // Ends with dash and numbers (e.g., "mat-mdc-form-field-label-12")
     /^.*_\d+$/, // Ends with underscore and numbers
-    /^.*\d+$/,  // Ends with numbers (e.g., "element123")
     /^\d+.*$/,  // Starts with numbers
     /^.*\d{2,}.*$/, // Contains 2 or more consecutive numbers
     /^.*-\d+-.*$/, // Contains dash-number-dash pattern
@@ -312,6 +311,13 @@ function hasValidID(element) {
       console.log('Content: ID ends with numeric part, considered dynamic:', id);
       return false;
     }
+  }
+  
+  // Check if ID is too generic (like "appContainer", "root", "main", etc.)
+  const genericIds = ['appcontainer', 'root', 'main', 'app', 'container', 'wrapper', 'content'];
+  if (genericIds.includes(id.toLowerCase())) {
+    console.log('Content: ID is too generic:', id);
+    return false;
   }
   
   console.log('Content: ID is valid (not dynamic):', id);
@@ -459,55 +465,63 @@ function showCopySuccess() {
 }
 
 function generateSpecificXPath(element) {
-  if (element.id && element.id.trim()) {
+  // First check if element has a valid ID
+  if (hasValidID(element)) {
     return `//${element.tagName.toLowerCase()}[@id='${element.id}']`;
   }
-  if (element.tagName.toLowerCase() === 'img') {
-    const src = element.getAttribute('src');
-    if (src && src.trim()) {
-      const baseXPath = `//img[contains(@src, '${src.split('/').pop()}')]`;
-      
-      const matchingElements = document.evaluate(baseXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-      
-      if (matchingElements.snapshotLength > 1) {
-        let position = 1;
-        for (let i = 0; i < matchingElements.snapshotLength; i++) {
-          if (matchingElements.snapshotItem(i) === element) {
-            return `(${baseXPath})[${position}]`;
-          }
-          position++;
-        }
-      }
-      return baseXPath;
+  
+  // Check for data-testid attribute
+  const dataTestId = element.getAttribute('data-testid');
+  if (dataTestId && dataTestId.trim()) {
+    return `//${element.tagName.toLowerCase()}[@data-testid='${dataTestId}']`;
+  }
+  
+  // Check for aria-label attribute
+  const ariaLabel = element.getAttribute('aria-label');
+  if (ariaLabel && ariaLabel.trim()) {
+    return `//${element.tagName.toLowerCase()}[@aria-label='${ariaLabel.replace(/'/g, "\\'")}']`;
+  }
+  
+  // Check for name attribute
+  const name = element.getAttribute('name');
+  if (name && name.trim()) {
+    return `//${element.tagName.toLowerCase()}[@name='${name}']`;
+  }
+  
+  // Check for title attribute
+  const title = element.getAttribute('title');
+  if (title && title.trim()) {
+    return `//${element.tagName.toLowerCase()}[@title='${title.replace(/'/g, "\\'")}']`;
+  }
+  
+  // Check for placeholder attribute (for inputs)
+  if (element.tagName.toLowerCase() === 'input') {
+    const placeholder = element.getAttribute('placeholder');
+    if (placeholder && placeholder.trim()) {
+      return `//input[@placeholder='${placeholder.replace(/'/g, "\\'")}']`;
     }
   }
   
-  if (element.tagName.toLowerCase() === 'input') {
-    const placeholder = element.getAttribute('placeholder');
-    const className = element.getAttribute('class');
-    if (placeholder && placeholder.trim() && className && className.trim()) {
-      const classes = className.split(' ').filter(c => c.trim());
-      if (classes.length > 0) {
-        const specificClass = classes.find(c => c.includes('-') || c.length > 5) || classes[0];
-        const baseXPath = `//input[contains(@class, '${specificClass}') and @placeholder="${placeholder.replace(/"/g, '\\"')}"]`;
-        
-        const matchingElements = document.evaluate(baseXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        
-        if (matchingElements.snapshotLength > 1) {
-          let position = 1;
-          for (let i = 0; i < matchingElements.snapshotLength; i++) {
-            if (matchingElements.snapshotItem(i) === element) {
-              return `(${baseXPath})[${position}]`;
-            }
-            position++;
-          }
-        }
-        
-        return baseXPath;
+  // Check for src attribute (for images)
+  if (element.tagName.toLowerCase() === 'img') {
+    const src = element.getAttribute('src');
+    if (src && src.trim()) {
+      const fileName = src.split('/').pop();
+      if (fileName) {
+        return `//img[contains(@src, '${fileName}')]`;
       }
     }
   }
-
+  
+  // Check for href attribute (for links)
+  if (element.tagName.toLowerCase() === 'a') {
+    const href = element.getAttribute('href');
+    if (href && href.trim()) {
+      return `//a[@href='${href}']`;
+    }
+  }
+  
+  // Check for text content
   const cleanTextContent = getCleanTextContent(element);
   if (cleanTextContent && cleanTextContent.length > 0 && cleanTextContent.length < 100) {
     const escapedText = cleanTextContent.replace(/'/g, "\\'").replace(/"/g, '\\"');
@@ -527,7 +541,8 @@ function generateSpecificXPath(element) {
     
     return baseXPath;
   }
-
+  
+  // Check for specific attributes
   const attributes = getSpecificAttributes(element);
   if (attributes.length > 0) {
     const attrConditions = attributes.map(attr => {
@@ -539,7 +554,6 @@ function generateSpecificXPath(element) {
     }).join(' and ');
     const baseXPath = `//${element.tagName.toLowerCase()}[${attrConditions}]`;
     
-   
     const matchingElements = document.evaluate(baseXPath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     
     if (matchingElements.snapshotLength > 1) {
@@ -555,6 +569,7 @@ function generateSpecificXPath(element) {
     return baseXPath;
   }
   
+  // Fallback to position-based XPath
   return generatePositionBasedXPath(element);
 }
 
@@ -579,11 +594,36 @@ function getSpecificAttributes(element) {
     }
   }
   
+  // Handle class attributes more intelligently
   if (element.className && element.className.trim()) {
     const classes = element.className.split(' ').filter(c => c.trim() && c !== 'mat-mdc-card-title');
     if (classes.length > 0) {
-      const specificClass = classes.find(c => c.includes('-') || c.length > 5) || classes[0];
-      attributes.push({ name: 'class', value: specificClass, useContains: true });
+      // Look for more specific classes (longer, more descriptive)
+      const specificClasses = classes.filter(c => 
+        c.length > 5 && 
+        !c.includes('ng-') && 
+        !c.includes('md:') && 
+        !c.includes('text-[') &&
+        !c.includes('basis-[') &&
+        !c.includes('flex-') &&
+        !c.includes('justify-') &&
+        !c.includes('items-') &&
+        !c.includes('gap-') &&
+        !c.includes('p-') &&
+        !c.includes('m-') &&
+        !c.includes('w-') &&
+        !c.includes('h-')
+      );
+      
+      if (specificClasses.length > 0) {
+        // Use the most specific class (longest or most descriptive)
+        const specificClass = specificClasses.sort((a, b) => b.length - a.length)[0];
+        attributes.push({ name: 'class', value: specificClass, useContains: true });
+      } else if (classes.length > 0) {
+        // Fallback to first non-generic class
+        const fallbackClass = classes.find(c => c.length > 3) || classes[0];
+        attributes.push({ name: 'class', value: fallbackClass, useContains: true });
+      }
     }
   }
   

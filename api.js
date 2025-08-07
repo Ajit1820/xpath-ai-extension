@@ -23,15 +23,18 @@ export async function callAIAPI(filteredHTML, isSingleElement = false, elementIn
        CRITICAL RULES FOR ID DETECTION:
        - Only return an ID if it exists AND is NOT dynamic
        - Dynamic IDs (containing numbers) should NOT be returned as IDs
-       - Examples of dynamic IDs to REJECT: "mat-mdc-form-field-label-12", "element-123", "button_456"
-       - Examples of valid IDs to ACCEPT: "login-button", "search-input", "submit-btn"
+       - Generic IDs like "appContainer", "root", "main", "container" should NOT be returned
+       - Examples of dynamic IDs to REJECT: "mat-mdc-form-field-label-12", "element-123", "button_456", "EcomTestProduct-5-add-to-cart"
+       - Examples of valid IDs to ACCEPT: "login-button", "search-input", "submit-btn", "WYBERT BATUK SIRUP SACHET-add-to-cart"
+       - IDs that end with numbers or contain patterns like "-5-" are dynamic and should be rejected
        
        CRITICAL RULES FOR XPATH GENERATION:
        - Generate the SHORTEST and MOST SPECIFIC XPath expression
-       - Prioritize: id > data-testid > aria-label > name > text content > short class
+       - Prioritize: id > data-testid > aria-label > name > text content > specific class
        - Avoid long class names - prefer text content over complex class combinations
        - Use position indexing ONLY when necessary
        - Keep XPaths under 80 characters when possible
+       - For table elements, use specific attributes like text content or position
        
        OUTPUT FORMAT:
        If valid ID exists: Return ONLY the ID (e.g., "login-button")
