@@ -1,6 +1,6 @@
 
 export const CONFIG = {
-  AI_API_KEY: "AIzaSyDDhL0Ugq_SmGUaWTXjELg0YrqLiQKa4R0", // Replace with your actual API key
+  AI_API_KEY: "", // Replace with your actual API key
   AI_MODEL: "gemini-2.0-flash",
   AI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/models",
   
