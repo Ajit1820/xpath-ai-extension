@@ -21,12 +21,16 @@ export async function callAIAPI(filteredHTML, isSingleElement = false, elementIn
        2. An XPath expression (if no valid ID exists)
        
        CRITICAL RULES FOR ID DETECTION:
-       - Only return an ID if it exists AND is NOT dynamic
-       - Dynamic IDs (containing numbers) should NOT be returned as IDs
+       - ALWAYS check for an ID attribute first: id="some-id"
+       - If an ID exists AND is NOT dynamic, return ONLY the ID value
+       - Dynamic IDs (containing random numbers) should NOT be returned as IDs
        - Generic IDs like "appContainer", "root", "main", "container" should NOT be returned
-       - Examples of dynamic IDs to REJECT: "mat-mdc-form-field-label-12", "element-123", "button_456", "EcomTestProduct-5-add-to-cart"
-       - Examples of valid IDs to ACCEPT: "login-button", "search-input", "submit-btn", "WYBERT BATUK SIRUP SACHET-add-to-cart"
-       - IDs that end with numbers or contain patterns like "-5-" are dynamic and should be rejected
+       - Examples of dynamic IDs to REJECT: "mat-mdc-form-field-label-12", "element-123", "button_456", "element-123-abc"
+       - Examples of valid IDs to ACCEPT: "login-button", "search-input", "submit-btn", "WYBERT BATUK SIRUP SACHET-add-to-cart", "DOMETIC SIRUP 60 ML-add-to-cart", "EcomTestProduct-5-add-to-cart"
+       - IDs that end with random numbers (like "element-123") are dynamic and should be rejected
+       - IDs that contain meaningful numbers as part of the name (like "60" in "DOMETIC SIRUP 60 ML-add-to-cart" or "5" in "EcomTestProduct-5-add-to-cart") are valid and should be accepted
+       - Product IDs with numbers (like "EcomTestProduct-5-add-to-cart") are valid and should be accepted
+       - IMPORTANT: If you find id="EcomTestProduct-5-add-to-cart" in the HTML, return ONLY "EcomTestProduct-5-add-to-cart"
        
        CRITICAL RULES FOR XPATH GENERATION:
        - Generate the SHORTEST and MOST SPECIFIC XPath expression
@@ -37,8 +41,23 @@ export async function callAIAPI(filteredHTML, isSingleElement = false, elementIn
        - For table elements, use specific attributes like text content or position
        
        OUTPUT FORMAT:
-       If valid ID exists: Return ONLY the ID (e.g., "login-button")
-       If no valid ID: Return ONLY the XPath (e.g., "//button[text()='Login']")
+       STEP 1: Look for id="..." attribute in the HTML element
+       STEP 2: Check if the ID is valid (not dynamic, not generic)
+       STEP 3: If valid ID exists, return ONLY the ID value (e.g., "login-button")
+       STEP 4: If no valid ID exists, return ONLY the XPath (e.g., "//button[text()='Login']")
+       
+       EXAMPLES:
+       VALID IDs to return:
+       - If HTML contains id="EcomTestProduct-5-add-to-cart" → Return: EcomTestProduct-5-add-to-cart
+       - If HTML contains id="DOMETIC SIRUP 60 ML-add-to-cart" → Return: DOMETIC SIRUP 60 ML-add-to-cart
+       - If HTML contains id="login-button" → Return: login-button
+       
+       INVALID IDs to reject (return XPath instead):
+       - If HTML contains id="mat-mdc-form-field-label-12" → Return: //label[text()='Login']
+       - If HTML contains id="element-123" → Return: //button[text()='Submit']
+       - If HTML contains id="appContainer" → Return: //div[@class='container']
+       
+       - If no ID exists → Return: //button[text()='Login']
        
        IMPORTANT: Return ONLY the ID or XPath, no descriptions, labels, or explanations.
        

@@ -290,9 +290,10 @@ function hasValidID(element) {
     /^.*-\d+$/, // Ends with dash and numbers (e.g., "mat-mdc-form-field-label-12")
     /^.*_\d+$/, // Ends with underscore and numbers
     /^\d+.*$/,  // Starts with numbers
-    /^.*\d{2,}.*$/, // Contains 2 or more consecutive numbers
-    /^.*-\d+-.*$/, // Contains dash-number-dash pattern
-    /^.*_\d+_.*$/, // Contains underscore-number-underscore pattern
+    /^.*-\d+-.*$/, // Contains dash-number-dash pattern (e.g., "element-123-abc")
+    /^.*_\d+_.*$/, // Contains underscore-number-underscore pattern (e.g., "element_123_abc")
+    /^.*-\d{3,}.*$/, // Contains 3 or more consecutive numbers (likely dynamic)
+    /^.*_\d{3,}.*$/, // Contains 3 or more consecutive numbers with underscore
   ];
   
   for (const pattern of dynamicPatterns) {
